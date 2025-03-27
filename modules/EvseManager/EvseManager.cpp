@@ -245,6 +245,10 @@ void EvseManager::ready() {
         // Ask HLC to stop charging session
         charger->signal_hlc_stop_charging.connect([this] { r_hlc[0]->call_stop_charging(true); });
 
+        // Charger needs to inform ISO stack about emergency stop
+        charger->signal_hlc_error.connect(
+            [this](types::iso15118::EvseError error) { r_hlc[0]->call_send_error(error); });
+
         auto sae_mode = types::iso15118::SaeJ2847BidiMode::None;
 
         // Set up energy transfer modes for HLC. For now we only support either DC or AC, not both at the same time.
@@ -1034,13 +1038,7 @@ void EvseManager::ready_to_start_charging() {
 
     // this will publish a session event Enabled or Disabled that allows other modules the retrieve this state on
     // startup
-    if (this->charger->get_current_state() == Charger::EvseState::Disabled) {
-        charger->enable_disable(
-            0, {types::evse_manager::Enable_source::Unspecified, types::evse_manager::Enable_state::Disable, 10000});
-    } else {
-        charger->enable_disable(
-            0, {types::evse_manager::Enable_source::Unspecified, types::evse_manager::Enable_state::Enable, 10000});
-    }
+    charger->enable_disable_initial_state_publish();
 
     this->p_evse->publish_ready(true);
     EVLOG_info << fmt::format(fmt::emphasis::bold | fg(fmt::terminal_color::green), "🌀🌀🌀 Ready to start charging 🌀🌀🌀");
