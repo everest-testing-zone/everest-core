@@ -7,10 +7,6 @@ config:
       link-local and a MAC addr will work
     type: string
     default: eth0
-  certificate_path:
-    description: Path to certificate directories
-    type: string
-    default: ""
   logging_path:
     description: Path to logging directory (will be created if non existent)
     type: string
@@ -23,6 +19,10 @@ config:
       - ENFORCE_TLS
       - ENFORCE_NO_TLS
     default: ACCEPT_CLIENT_OFFER  
+  enforce_tls_1_3:
+    description: Enforcing tls version 1.3. Only applies if tls_negotiation_strategy is ENFORCE_TLS.
+    type: boolean
+    default: false
   enable_ssl_logging:
     description: Verbosely log the ssl/tls connection
     type: boolean
@@ -34,6 +34,11 @@ config:
       simulation purpose only
     type: boolean
     default: false
+  tls_key_logging_path:
+    description:  >-
+      Output directory for the TLS key log file
+    type: string
+    default: /tmp
   enable_sdp_server:
     description: >-
       Enable the built-in SDP server
