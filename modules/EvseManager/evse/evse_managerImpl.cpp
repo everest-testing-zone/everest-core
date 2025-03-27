@@ -130,7 +130,7 @@ void evse_managerImpl::ready() {
         // external Nodered interface
         mod->mqtt.publish(fmt::format("everest_external/nodered/{}/state/temperature", mod->config.connector_id),
                           telemetry.evse_temperature_C);
-        // /external Nodered interface
+        // external Nodered interface
         publish_telemetry(telemetry);
     });
 
@@ -466,8 +466,14 @@ bool evse_managerImpl::handle_external_ready_to_start_charging() {
 }
 
 bool evse_managerImpl::handle_force_unlock(int& connector_id) {
-    mod->bsp->connector_force_unlock();
-    return true;
+    if (not mod->r_connector_lock.empty()) {
+        types::evse_manager::StopTransactionRequest request;
+        request.reason = types::evse_manager::StopTransactionReason::UnlockCommand;
+        mod->charger->cancel_transaction(request);
+        mod->bsp->connector_force_unlock();
+        return true;
+    }
+    return false;
 };
 
 } // namespace evse
