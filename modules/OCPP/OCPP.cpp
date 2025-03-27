@@ -385,7 +385,7 @@ void OCPP::init() {
     // ensure all evse_energy_sink(s) that are connected have an evse id mapping
     for (const auto& evse_sink : this->r_evse_energy_sink) {
         if (not evse_sink->get_mapping().has_value()) {
-            EVLOG_critical << "Please configure an evse mapping your configuration file for the connected "
+            EVLOG_critical << "Please configure an evse mapping in your configuration file for the connected "
                               "r_evse_energy_sink with module_id: "
                            << evse_sink->module_id;
             throw std::runtime_error("At least one connected evse_energy_sink misses a mapping to an evse.");
@@ -542,9 +542,12 @@ void OCPP::ready() {
     this->charge_point->register_unlock_connector_callback([this](int32_t connector) {
         if (this->connector_evse_index_map.count(connector)) {
             EVLOG_info << "Executing unlock connector callback";
-            return this->r_evse_manager.at(this->connector_evse_index_map.at(connector))->call_force_unlock(1);
+            // UnlockStatus::Failed is currently not supported by EVerest
+            return this->r_evse_manager.at(this->connector_evse_index_map.at(connector))->call_force_unlock(1)
+                       ? ocpp::v16::UnlockStatus::Unlocked
+                       : ocpp::v16::UnlockStatus::NotSupported;
         } else {
-            return false;
+            return ocpp::v16::UnlockStatus::NotSupported;
         }
     });
 
@@ -797,7 +800,7 @@ void OCPP::ready() {
         });
 
     this->charge_point->register_security_event_callback([this](const std::string& type, const std::string& tech_info) {
-        EVLOG_info << "Security Event in OCPP occured: " << type;
+        EVLOG_info << "Security Event in OCPP occurred: " << type;
         types::ocpp::SecurityEvent event;
         event.type = type;
         event.info = tech_info;
