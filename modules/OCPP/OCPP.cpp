@@ -125,20 +125,20 @@ void OCPP::set_external_limits(const std::map<int32_t, ocpp::v16::EnhancedChargi
             const auto timestamp = start_time.to_time_point() + std::chrono::seconds(period.startPeriod);
             schedule_req_entry.timestamp = ocpp::DateTime(timestamp).to_rfc3339();
             if (period.numberPhases.has_value()) {
-                limits_req.ac_max_phase_count = period.numberPhases.value();
+                limits_req.ac_max_phase_count = {period.numberPhases.value(), source_ext_limit};
             }
             if (schedule.chargingRateUnit == ocpp::v16::ChargingRateUnit::A) {
-                limits_req.ac_max_current_A = period.limit;
+                limits_req.ac_max_current_A = {period.limit, source_ext_limit};
                 if (schedule.minChargingRate.has_value()) {
-                    limits_req.ac_min_current_A = schedule.minChargingRate.value();
+                    limits_req.ac_min_current_A = {schedule.minChargingRate.value(), source_ext_limit};
                 }
             } else {
-                limits_req.total_power_W = period.limit;
+                limits_req.total_power_W = {period.limit, source_ext_limit};
             }
             schedule_req_entry.limits_to_leaves = limits_req;
             schedule_import.push_back(schedule_req_entry);
         }
-        limits.schedule_import.emplace(schedule_import);
+        limits.schedule_import = schedule_import;
         auto& evse_sink = external_energy_limits::get_evse_sink_by_evse_id(this->r_evse_energy_sink, connector_id);
         evse_sink.call_set_external_limits(limits);
     }
@@ -382,10 +382,12 @@ void OCPP::init() {
     invoke_init(*p_auth_provider);
     invoke_init(*p_data_transfer);
 
+    source_ext_limit = info.id + "/OCPP_set_external_limits";
+
     // ensure all evse_energy_sink(s) that are connected have an evse id mapping
     for (const auto& evse_sink : this->r_evse_energy_sink) {
         if (not evse_sink->get_mapping().has_value()) {
-            EVLOG_critical << "Please configure an evse mapping your configuration file for the connected "
+            EVLOG_critical << "Please configure an evse mapping in your configuration file for the connected "
                               "r_evse_energy_sink with module_id: "
                            << evse_sink->module_id;
             throw std::runtime_error("At least one connected evse_energy_sink misses a mapping to an evse.");
@@ -542,9 +544,12 @@ void OCPP::ready() {
     this->charge_point->register_unlock_connector_callback([this](int32_t connector) {
         if (this->connector_evse_index_map.count(connector)) {
             EVLOG_info << "Executing unlock connector callback";
-            return this->r_evse_manager.at(this->connector_evse_index_map.at(connector))->call_force_unlock(1);
+            // UnlockStatus::Failed is currently not supported by EVerest
+            return this->r_evse_manager.at(this->connector_evse_index_map.at(connector))->call_force_unlock(1)
+                       ? ocpp::v16::UnlockStatus::Unlocked
+                       : ocpp::v16::UnlockStatus::NotSupported;
         } else {
-            return false;
+            return ocpp::v16::UnlockStatus::NotSupported;
         }
     });
 
@@ -797,7 +802,7 @@ void OCPP::ready() {
         });
 
     this->charge_point->register_security_event_callback([this](const std::string& type, const std::string& tech_info) {
-        EVLOG_info << "Security Event in OCPP occured: " << type;
+        EVLOG_info << "Security Event in OCPP occurred: " << type;
         types::ocpp::SecurityEvent event;
         event.type = type;
         event.info = tech_info;
