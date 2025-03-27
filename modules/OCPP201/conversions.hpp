@@ -17,6 +17,7 @@
 #include <ocpp/v2/messages/Get15118EVCertificate.hpp>
 #include <ocpp/v2/messages/GetDisplayMessages.hpp>
 #include <ocpp/v2/messages/GetLog.hpp>
+#include <ocpp/v2/messages/NotifyEVChargingNeeds.hpp>
 #include <ocpp/v2/messages/SetDisplayMessage.hpp>
 #include <ocpp/v2/messages/TransactionEvent.hpp>
 #include <ocpp/v2/messages/UpdateFirmware.hpp>
@@ -74,9 +75,6 @@ ocpp::v2::BootReasonEnum to_ocpp_boot_reason(types::system::BootReason reason);
 /// \brief Converts a given types::evse_manager::StopTransactionReason \p reason to an ocpp::v2::ReasonEnum.
 ocpp::v2::ReasonEnum to_ocpp_reason(types::evse_manager::StopTransactionReason reason);
 
-/// \brief Converts a given types::authorization::IdTokenType \p id_token_type to an ocpp::v2::IdTokenEnum.
-ocpp::v2::IdTokenEnum to_ocpp_id_token_enum(types::authorization::IdTokenType id_token_type);
-
 /// \brief Converts a given types::authorization::IdToken \p id_token to an ocpp::v2::IdToken.
 ocpp::v2::IdToken to_ocpp_id_token(const types::authorization::IdToken& id_token);
 
@@ -120,6 +118,11 @@ ocpp::v2::AttributeEnum to_ocpp_attribute_enum(const types::ocpp::AttributeEnum 
 ocpp::v2::Get15118EVCertificateRequest
 to_ocpp_get_15118_certificate_request(const types::iso15118::RequestExiStreamSchema& request);
 
+/// \brief Converts a given types::types::iso15118::ChargingNeeds to
+/// ocpp::v2::NotifyEVChargingNeedsRequest
+ocpp::v2::NotifyEVChargingNeedsRequest
+to_ocpp_notify_ev_charging_needs_request(const types::iso15118::ChargingNeeds& charging_needs);
+
 /// \brief Converts a given types::reservation::ReservationResult to ocpp::v2::ReserveNowStatusEnum
 ocpp::v2::ReserveNowStatusEnum to_ocpp_reservation_status(const types::reservation::ReservationResult result);
 
@@ -157,9 +160,6 @@ types::authorization::ValidationResult to_everest_validation_result(const ocpp::
 /// types::authorization::AuthorizationStatus.
 types::authorization::AuthorizationStatus
 to_everest_authorization_status(const ocpp::v2::AuthorizationStatusEnum status);
-
-/// \brief Converts a given ocpp::v2::IdTokenEnum \p type to a types::authorization::IdTokenType.
-types::authorization::IdTokenType to_everest_id_token_type(const ocpp::v2::IdTokenEnum& type);
 
 /// \brief Converts a given ocpp::v2::IdToken \p id_token to a types::authorization::IdToken.
 types::authorization::IdToken to_everest_id_token(const ocpp::v2::IdToken& id_token);
@@ -266,9 +266,6 @@ to_ocpp_clear_message_response_enum(const types::display_message::ClearMessageRe
 
 ocpp::v2::ClearDisplayMessageResponse
 to_ocpp_clear_display_message_response(const types::display_message::ClearDisplayMessageResponse& response);
-
-/// \brief Convert a given ocpp::v2::ConnectorEnum connector type to a types::evse_manager::ConnectorTypeEnum
-types::evse_manager::ConnectorTypeEnum to_everest_connector_type_enum(const ocpp::v2::ConnectorEnum& connector_type);
 
 } // namespace conversions
 } // namespace module
