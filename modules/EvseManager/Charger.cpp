@@ -735,7 +735,7 @@ void Charger::run_state_machine() {
         case EvseState::StoppingCharging:
             if (initialize_state) {
                 bcb_toggle_reset();
-                if (shared_context.transaction_active or shared_context.session_active) {
+                if (shared_context.transaction_active) {
                     signal_simple_event(types::evse_manager::SessionEventEnum::StoppingCharging);
                 }
 
@@ -1129,7 +1129,15 @@ bool Charger::cancel_transaction(const types::evse_manager::StopTransactionReque
     Everest::scoped_lock_timeout lock(state_machine_mutex, Everest::MutexDescription::Charger_cancel_transaction);
 
     if (shared_context.transaction_active) {
+
         if (shared_context.hlc_charging_active) {
+
+            if (request.reason == types::evse_manager::StopTransactionReason::EmergencyStop) {
+                signal_hlc_error(types::iso15118::EvseError::Error_EmergencyShutdown);
+            } else if (request.reason == types::evse_manager::StopTransactionReason::PowerLoss) {
+                signal_hlc_error(types::iso15118::EvseError::Error_UtilityInterruptEvent);
+            }
+
             shared_context.current_state = EvseState::StoppingCharging;
             signal_hlc_stop_charging();
         } else {
@@ -1422,8 +1430,8 @@ bool Charger::deauthorize() {
 }
 
 bool Charger::deauthorize_internal() {
-    signal_simple_event(types::evse_manager::SessionEventEnum::Deauthorized);
     if (shared_context.session_active) {
+        signal_simple_event(types::evse_manager::SessionEventEnum::Deauthorized);
         auto s = shared_context.current_state;
 
         if (s == EvseState::Disabled or s == EvseState::Idle or s == EvseState::WaitingForAuthentication) {
