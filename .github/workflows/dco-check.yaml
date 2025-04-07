@@ -1,6 +1,7 @@
 name: DCO Check
 on:    
   pull_request: {}
+  merge_group: {}
 jobs:
   dco_check:
     name: DCO Check
