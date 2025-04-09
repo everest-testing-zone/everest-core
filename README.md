@@ -1,4 +1,4 @@
-# everest-core
+# everest-core 2
 
 This is the main part of EVerest containing the actual charge controller logic
 included in a large set of modules.
